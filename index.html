@@ -1,0 +1,1051 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── LIGHT THEME (default) ── */
+:root{
+  --bg:#f0f4f8;--text:#1e293b;--text-h1:#0f172a;--text-muted:#64748b;--text-faint:#94a3b8;
+  --card-bg:#ffffff;--card-border:#e2e8f0;--card-shadow:0 1px 4px rgba(0,0,0,0.06);
+  --input-bg:#f8fafc;--input-border:#e2e8f0;--input-text:#1e293b;--invalid-border:#f87171;
+  --sfx-color:#94a3b8;--sv-color:#0284c7;--accent:#0284c7;--accent-dim:rgba(2,132,199,0.1);
+  --pill-bg:#f1f5f9;--pill-border:#e2e8f0;--pill-text:#64748b;--pill-active-bg:#dbeafe;--pill-active-text:#0284c7;
+  --stat-bg:#f8fafc;--stat-border:#e2e8f0;--sl-color:#64748b;--ss-color:#94a3b8;
+  --btp-bg:#eff6ff;--btp-color:#0284c7;--btp-border:#bfdbfe;
+  --btd-bg:#fef2f2;--btd-color:#dc2626;--btd-border:#fecaca;
+  --bte-bg:#f0fdf4;--bte-color:#16a34a;--bte-border:#bbf7d0;
+  --btk-bg:#fffbeb;--btk-color:#b45309;--btk-border:#fde68a;
+  --eb-bg:#fef2f2;--eb-color:#dc2626;--eb-border:#fecaca;
+  --band-bg:#f8fafc;--band-border:#e2e8f0;--band-text:#64748b;--band-hover-border:#93c5fd;
+  --band-active-bg:#eff6ff;--band-active-border:#0284c7;--band-active-text:#0284c7;
+  --band-model-color:#94a3b8;--lbl-color:#64748b;--ir-color:#64748b;--ttr-color:#64748b;
+  --rb-bg:#f0fdf4;--rb-border:#bbf7d0;--rl-color:#16a34a;--rv-color:#16a34a;
+  --canvas-bg:#f8fafc;--canvas-border:#e2e8f0;--lh-color:#94a3b8;
+  --map-bg:#f8fafc;--map-border:#e2e8f0;--mbox-bg:#f8fafc;--mbox-border:#e2e8f0;
+  --dot-pulse:#0284c7;--dot-pulse-shadow:rgba(2,132,199,0.4);
+  --author-color:#0284c7;
+  /* canvas draw colors */
+  --cv-bg0:#f8fafc;--cv-bg1:#f1f5f9;
+  --cv-grid:#e2e8f0;--cv-axis:#64748b;
+  --cv-beam0:rgba(2,132,199,0.22);--cv-beam1:rgba(2,132,199,0.09);--cv-beam2:rgba(2,132,199,0.02);
+  --cv-edge:rgba(2,132,199,0.65);
+  --cv-gnd0:rgba(134,197,117,0.45);--cv-gnd1:rgba(134,197,117,0.1);--cv-gnd-stroke:#86c875;
+  --cv-terrain0:rgba(130,85,45,0.82);--cv-terrain1:rgba(95,62,28,0.72);--cv-terrain2:rgba(55,35,15,0.55);
+  --cv-terrain-stroke:rgba(160,105,40,0.7);
+  --cv-tower:#94a3b8;--cv-tower-text:#475569;--cv-ant-fill:#1e293b;--cv-ant-stroke:#0284c7;
+  --cv-dot-stroke:rgba(255,255,255,0.85);--cv-leg-text:#64748b;
+  --cv-main-hit:#16a34a;--cv-tilt-label:#0284c7;--cv-model-label:#94a3b8;
+  --cv-dist-line:rgba(139,92,246,0.7);
+  --cv-outside-dot:#94a3b8;
+}
+
+/* ── DARK THEME ── */
+body.dark{
+  --bg:#060d18;--text:#d4e4f5;--text-h1:#d4e4f5;--text-muted:#5a7a9a;--text-faint:#3a5a7a;
+  --card-bg:#0a1628;--card-border:#1a2e48;--card-shadow:none;
+  --input-bg:#060d18;--input-border:#1a2e48;--input-text:#d4e4f5;--invalid-border:#5a1818;
+  --sfx-color:#3a5a7a;--sv-color:#38bdf8;--accent:#38bdf8;--accent-dim:rgba(56,189,248,0.18);
+  --pill-bg:#060d18;--pill-border:#1a2e48;--pill-text:#5a7a9a;--pill-active-bg:#1e3a5f;--pill-active-text:#38bdf8;
+  --stat-bg:#060d18;--stat-border:#1a2e48;--sl-color:#4a6a8a;--ss-color:#3a5a7a;
+  --btp-bg:#1e3a5f;--btp-color:#38bdf8;--btp-border:#1e3a5f;
+  --btd-bg:#1a0f0f;--btd-color:#ef4444;--btd-border:#3a2020;
+  --bte-bg:#12261a;--bte-color:#22c55e;--bte-border:#1e3a28;
+  --btk-bg:#2a1f08;--btk-color:#f59e0b;--btk-border:#4a3510;
+  --eb-bg:#1a0808;--eb-color:#ef4444;--eb-border:#3a1818;
+  --band-bg:#060d18;--band-border:#1a2e48;--band-text:#5a7a9a;--band-hover-border:#38bdf8;
+  --band-active-bg:#0f2a45;--band-active-border:#38bdf8;--band-active-text:#38bdf8;
+  --band-model-color:#3a5a7a;--lbl-color:#5a7a9a;--ir-color:#3a5a7a;--ttr-color:#5a7a9a;
+  --rb-bg:#0d1f10;--rb-border:#1e3a28;--rl-color:#4a8a5a;--rv-color:#22c55e;
+  --canvas-bg:#060d18;--canvas-border:#1a2e48;--lh-color:#3a5a7a;
+  --map-bg:#0a1628;--map-border:#1a2e48;--mbox-bg:#060d18;--mbox-border:#1a2e48;
+  --dot-pulse:#38bdf8;--dot-pulse-shadow:#38bdf8;
+  --author-color:#38bdf8;
+  /* canvas draw colors */
+  --cv-bg0:#070e1c;--cv-bg1:#040a14;
+  --cv-grid:#0d1d2e;--cv-axis:#3a5a7a;
+  --cv-beam0:rgba(56,189,248,0.32);--cv-beam1:rgba(56,189,248,0.13);--cv-beam2:rgba(56,189,248,0.02);
+  --cv-edge:rgba(100,210,252,0.72);
+  --cv-gnd0:rgba(35,70,45,0.40);--cv-gnd1:rgba(15,35,20,0.12);--cv-gnd-stroke:#2a4a3a;
+  --cv-terrain0:rgba(130,85,45,0.82);--cv-terrain1:rgba(95,62,28,0.72);--cv-terrain2:rgba(55,35,15,0.55);
+  --cv-terrain-stroke:rgba(190,130,65,0.75);
+  --cv-tower:#4a6a8a;--cv-tower-text:#8ab8d8;--cv-ant-fill:#d4e4f5;--cv-ant-stroke:#38bdf8;
+  --cv-dot-stroke:rgba(4,10,20,0.85);--cv-leg-text:#5a7a9a;
+  --cv-main-hit:#22c55e;--cv-tilt-label:#38bdf8;--cv-model-label:#5a7a9a;
+  --cv-dist-line:rgba(168,85,247,0.7);
+  --cv-outside-dot:#4a5a70;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:14px 18px 40px;transition:background .25s,color .25s}
+h1{font-size:20px;font-weight:700;letter-spacing:-0.02em;color:var(--text-h1)}
+h2{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:16px;box-shadow:var(--card-shadow);transition:background .25s,border-color .25s}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lbl{font-size:10px;font-weight:600;color:var(--lbl-color);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.iw{display:flex;align-items:center;background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;padding:7px 10px;transition:background .25s,border-color .25s}
+.iw input{flex:1;background:transparent;border:none;color:var(--input-text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;width:100%}
+.iw.invalid{border-color:var(--invalid-border)}
+.iw input[type=number]::-webkit-inner-spin-button{opacity:1}
+.sfx{font-size:11px;color:var(--sfx-color);font-weight:600;margin-left:6px;white-space:nowrap}
+.sr{display:flex;flex-direction:column;gap:5px}
+.sh{display:flex;justify-content:space-between;align-items:baseline}
+.sv{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--sv-color)}
+input[type=range]{width:100%;accent-color:var(--accent);height:4px}
+.stat{background:var(--stat-bg);border:1px solid var(--stat-border);border-radius:10px;padding:12px 14px;transition:background .25s}
+.sl{font-size:10px;color:var(--sl-color);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.sv2{font-size:19px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.ss{font-size:10px;color:var(--ss-color);margin-top:3px}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:wait}
+.btp{background:var(--btp-bg);color:var(--btp-color);border:1px solid var(--btp-border)}
+.btd{background:var(--btd-bg);color:var(--btd-color);border:1px solid var(--btd-border)}
+.bte{background:var(--bte-bg);color:var(--bte-color);border:1px solid var(--bte-border)}
+.btk{background:var(--btk-bg);color:var(--btk-color);border:1px solid var(--btk-border);font-size:13px;font-weight:700;padding:9px 22px;border-radius:8px;cursor:pointer}
+.pg{display:flex;gap:3px;background:var(--pill-bg);border:1px solid var(--pill-border);border-radius:7px;padding:3px;width:fit-content}
+.pl{padding:5px 14px;border-radius:5px;font-size:11px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--pill-text)}
+.pl.active{background:var(--pill-active-bg);color:var(--pill-active-text)}
+.eb{font-size:12px;color:var(--eb-color);background:var(--eb-bg);border:1px solid var(--eb-border);border-radius:6px;padding:8px 12px}
+.band-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.band-btn{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;border:1px solid var(--band-border);cursor:pointer;background:var(--band-bg);color:var(--band-text);font-family:'JetBrains Mono',monospace;transition:all .15s}
+.band-btn:hover{border-color:var(--band-hover-border);color:var(--accent)}
+.band-btn.active{background:var(--band-active-bg);border-color:var(--band-active-border);color:var(--band-active-text);box-shadow:0 0 0 3px var(--accent-dim)}
+.band-model{font-size:10px;color:var(--band-model-color);font-family:'JetBrains Mono',monospace;margin-left:4px}
+.ir{font-size:11px;color:var(--ir-color)}
+.ttr{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ttr-color);margin-bottom:8px;flex-wrap:wrap}
+.ttr label{cursor:pointer;display:flex;align-items:center;gap:4px}
+.rb{background:var(--rb-bg);border:1px solid var(--rb-border);border-radius:8px;padding:10px 14px}
+.rl{color:var(--rl-color);font-size:10px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.rv{font-size:18px;font-family:'JetBrains Mono',monospace;color:var(--rv-color);font-weight:700}
+canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border:1px solid var(--canvas-border);display:block}
+.lh{font-size:10px;color:var(--lh-color);margin-top:4px;font-family:'JetBrains Mono',monospace}
+#map{height:430px;border-radius:8px;border:1px solid var(--map-border);background:var(--map-bg)}
+.smrow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.smdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.mbox{background:var(--mbox-bg);border:1px solid var(--mbox-border);border-radius:8px;padding:12px 16px;transition:background .25s}
+.leaflet-container{font-family:'Segoe UI',system-ui,sans-serif!important}
+.leaflet-control-attribution{font-size:9px!important}
+#vizRow{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* theme toggle button */
+.theme-toggle{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--card-border);cursor:pointer;background:var(--card-bg);color:var(--text-muted);transition:all .2s}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+
+@media(max-width:900px){#vizRow{grid-template-columns:1fr}}
+@media(max-width:520px){.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:1fr 1fr}}
+</style>
+
+<div style="max-width:1520px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+
+<!-- HEADER -->
+<div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--dot-pulse);box-shadow:0 0 8px var(--dot-pulse-shadow)"></div>
+    <h1>Antenna Downtilt Calculator</h1>
+    <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+      <button class="btn bte" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--text-muted)">Beam profile · Terrain · Sector map · KMZ export</p>
+  <p style="font-size:11px;color:var(--text-faint);margin-top:3px">Created by <span style="color:var(--author-color);font-weight:600">Reianjim Ramos</span> · <a href="mailto:reianjimr@gmail.com" style="color:var(--author-color);text-decoration:none">reianjimr@gmail.com</a></p>
+</div>
+
+<!-- UNIT TOGGLE -->
+<div class="pg">
+  <button class="pl active" id="pill-metric" onclick="setUnit('metric')">Metric (m)</button>
+  <button class="pl" id="pill-usa" onclick="setUnit('usa')">US (ft)</button>
+</div>
+
+<!-- SETTINGS CARD -->
+<div class="card" style="display:flex;flex-direction:column;gap:14px">
+
+  <!-- BAND SELECTOR -->
+  <div>
+    <div class="lbl" style="margin-bottom:8px">Band / Antenna Preset</div>
+    <div class="band-bar">
+      <button class="band-btn" id="band-L700"   onclick="applyBand('L700')">L700</button>
+      <button class="band-btn" id="band-L2100"  onclick="applyBand('L2100')">L2100</button>
+      <button class="band-btn" id="band-L2600"  onclick="applyBand('L2600')">L2600</button>
+      <span class="band-model" id="bandModelLabel">— select a band to preload antenna settings</span>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div><div class="lbl">Antenna height</div><div class="iw"><input type="number" id="height" value="30" min="1" max="500" step="1" oninput="recalc()"><span class="sfx" id="hUnit">m</span></div></div>
+    <div><div class="lbl">Distance to check</div><div class="iw"><input type="number" id="distance" value="500" min="0" max="100000" step="10" oninput="recalc()"><span class="sfx" id="dUnit">m</span></div></div>
+  </div>
+  <div>
+    <div class="ttr">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)">Tilt type:</span>
+      <label><input type="radio" name="tt" value="mechanical" checked onchange="buildSliders()"> Mechanical</label>
+      <label><input type="radio" name="tt" value="electrical" onchange="buildSliders()"> Electrical</label>
+      <label><input type="radio" name="tt" value="combined" onchange="buildSliders()"> Combined</label>
+    </div>
+    <div id="tiltSliders" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+  <div class="sr"><div class="sh"><span class="lbl">Vertical Beamwidth</span><span class="sv" id="vBWout">6.0°</span></div><input type="range" id="vBW" min="1" max="30" step="0.5" value="6" oninput="recalc()"></div>
+  <div class="sr"><div class="sh"><span class="lbl">Horizontal Beamwidth</span><span class="sv" id="hBWout">65°</span></div><input type="range" id="hBW" min="10" max="360" step="1" value="65" oninput="recalc()"></div>
+</div>
+
+<!-- TILT RECOMMENDATION -->
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <h2>Tilt Recommendation</h2>
+  <div class="g3">
+    <div><div class="lbl">Cell radius</div><div class="iw"><input type="number" id="cellRadius" value="300" min="10" step="10" oninput="recalc()"><span class="sfx" id="crUnit">m</span></div></div>
+    <div class="rb"><div class="rl">Recommended tilt</div><div class="rv" id="recTilt">—</div></div>
+    <div class="rb"><div class="rl">3dB edge tilt</div><div class="rv" id="rec3dB" style="color:#f59e0b">—</div></div>
+  </div>
+  <p style="font-size:11px;color:var(--text-faint)">Rec = arctan(H/R) · 3dB = arctan(H/R) + VBW/2</p>
+</div>
+
+<!-- STATS -->
+<div class="g4">
+  <div class="stat" style="border-top:2px solid #f59e0b"><div class="sl">Main lobe</div><div class="sv2" id="statMain" style="color:#f59e0b">—</div><div class="ss">Center beam impact</div></div>
+  <div class="stat" style="border-top:2px solid #16a34a"><div class="sl">Footprint</div><div class="sv2" id="statFoot" style="color:#16a34a">—</div><div class="ss" id="statEdges">Near → Far</div></div>
+  <div class="stat" style="border-top:2px solid #0284c7"><div class="sl">Effective tilt</div><div class="sv2" id="statEff" style="color:#0284c7">—</div><div class="ss">Elec + Mech</div></div>
+  <div class="stat" id="statRange" style="border-top:2px solid #16a34a"><div class="sl">Distance check</div><div class="sv2" id="statRangeVal" style="color:#16a34a">—</div><div class="ss" id="statRangeSub"></div></div>
+</div>
+
+<!-- VIZ ROW: Beam + Map Side by Side -->
+<div id="vizRow">
+
+  <!-- LEFT: Beam Profile + Terrain Controls -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div>
+      <h2 id="profileTitle" style="margin-bottom:8px">Beam Profile (flat earth)</h2>
+      <canvas id="beamCanvas" height="420"></canvas>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h2 style="margin:0">Elevation Profile</h2>
+        <div style="display:flex;gap:6px">
+          <button class="btn btd" id="btnReset" onclick="resetTerrain()" style="display:none">Reset</button>
+          <button class="btn btp" id="btnFetch" onclick="fetchTerrain()">Fetch Terrain</button>
+        </div>
+      </div>
+      <div class="g2">
+        <div>
+          <div class="lbl">Latitude, Longitude</div>
+          <div class="iw" id="latlonWrap"><input type="text" id="latlon" value="7.075, 125.61" placeholder="7.03477604, 125.39594163" oninput="validateLL();debounceDraw();debounceTerrain()"></div>
+          <div class="lh" id="latlonHint">e.g. 7.03477604, 125.39594163</div>
+        </div>
+        <div>
+          <div class="lbl">Azimuth</div>
+          <div class="iw"><input type="number" id="azimuth" value="0" min="0" max="360" step="1" oninput="debounceDraw();debounceTerrain()"><span class="sfx">°</span></div>
+        </div>
+      </div>
+      <div id="errorBox" style="display:none" class="eb"></div>
+      <div id="terrainInfo" class="ir" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Sector Map -->
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="margin:0">Sector Map (OSM)</h2>
+        <p style="font-size:11px;color:var(--text-faint);margin-top:2px">Sector from coords, azimuth, H-BW and beam distances</p>
+      </div>
+      <button class="btn btp" onclick="drawSector()">⟳ Refresh Map</button>
+    </div>
+    <div id="map"></div>
+    <div class="mbox">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Sector Metrics</div>
+      <div class="smrow"><div class="smdot" style="background:#16a34a"></div><span style="color:var(--text-muted)">Main Lobe:</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#16a34a;margin-left:6px" id="smMain">—</span></div>
+      <div class="smrow"><div class="smdot" style="background:#f59e0b"></div><span style="color:var(--text-muted)">Footprint:</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#f59e0b;margin-left:6px" id="smFoot">—</span></div>
+      <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-size:11px;color:var(--text-faint)">
+        <span>Azimuth: <span style="color:var(--accent);font-family:'JetBrains Mono',monospace" id="smAz">—</span></span>
+        <span>H-BW: <span style="color:var(--accent);font-family:'JetBrains Mono',monospace" id="smHBW">—</span></span>
+        <span>Sector radius: <span style="color:var(--accent);font-family:'JetBrains Mono',monospace" id="smRad">—</span></span>
+        <span>Near edge: <span style="color:var(--accent);font-family:'JetBrains Mono',monospace" id="smNear">—</span></span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btk" onclick="exportKMZ()">📦 Export Sector KMZ</button>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--text-muted)">
+        <span><span style="display:inline-block;width:12px;height:12px;background:rgba(220,80,50,0.5);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Outside footprint</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:rgba(34,197,94,0.55);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Footprint range</span>
+      </div>
+    </div>
+    <div id="mapFooter" style="font-size:10px;color:var(--text-faint);line-height:1.6"></div>
+  </div>
+
+</div><!-- end vizRow -->
+
+<!-- FORMULAS -->
+<div class="card">
+  <h2>Formulas</h2>
+  <div class="g2" style="font-size:11px;color:var(--text-faint);gap:6px;font-family:'JetBrains Mono',monospace">
+    <div>Impact = H / tan(tilt)</div><div>Near = H / tan(tilt + VBW/2)</div>
+    <div>Far = H / tan(tilt − VBW/2)</div><div>Footprint = Far − Near</div>
+    <div>Rec. tilt = arctan(H / R)</div><div>ETilt = Mech + Elec</div>
+  </div>
+</div>
+
+</div><!-- end container -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const D2R=Math.PI/180,RE=6371000;
+let unit='metric',terrain=null,siteElev=0;
+let mapObj=null,mapReady=false,mapLayers=[],drawTimer=null;
+const g=id=>document.getElementById(id);
+
+/* ── UNITS ── */
+function setUnit(u){
+  unit=u;
+  document.querySelectorAll('.pl').forEach(p=>p.classList.remove('active'));
+  g('pill-'+u).classList.add('active');
+  const s=u==='usa'?'ft':'m';
+  ['hUnit','dUnit','crUnit'].forEach(id=>{const e=g(id);if(e)e.textContent=s});
+  recalc();
+}
+function toM(v){return unit==='usa'?v/3.28084:v}
+function fmt(v){
+  if(!isFinite(v)||v<0)return'∞';
+  const sm=unit==='usa'?'ft':'m',lg=unit==='usa'?'mi':'km';
+  const c=unit==='usa'?3.28084:1,b=unit==='usa'?0.000621371:0.001;
+  const vc=v*c;return vc>5000?(v*b).toFixed(2)+' '+lg:vc.toFixed(1)+' '+sm;
+}
+
+/* ── LAT/LON ── */
+function validateLL(){
+  const p=parseLL();
+  const w=g('latlonWrap'),h=g('latlonHint');
+  if(p){w.classList.remove('invalid');h.style.color='#64748b';h.textContent=`Lat: ${p.lat.toFixed(6)}  Lon: ${p.lon.toFixed(6)}`;}
+  else{w.classList.add('invalid');h.style.color='#ef4444';h.textContent='Invalid — use: lat, lon';}
+}
+function parseLL(){
+  const raw=g('latlon').value.trim().split(/[\s,]+/).filter(Boolean);
+  if(raw.length<2)return null;
+  const lat=parseFloat(raw[0]),lon=parseFloat(raw[1]);
+  if(isNaN(lat)||isNaN(lon)||lat<-90||lat>90||lon<-180||lon>180)return null;
+  return{lat,lon};
+}
+
+/* ── TILT SLIDERS ── */
+function sHTML(id,lbl,min,max,step,val,suf){
+  return`<div class="sr"><div class="sh"><span class="lbl">${lbl}</span><span class="sv" id="${id}O">${val}${suf}</span></div><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}" oninput="g('${id}O').textContent=parseFloat(this.value).toFixed(1)+'${suf}';recalc()"></div>`;
+}
+function buildSliders(){
+  const t=document.querySelector('input[name=tt]:checked').value,box=g('tiltSliders');
+  box.innerHTML='';
+  if(t==='mechanical'||t==='combined')box.innerHTML+=sHTML('mTilt','Mechanical Downtilt',0,20,0.5,4,'°');
+  if(t==='electrical'||t==='combined')box.innerHTML+=sHTML('eTilt','Electrical Downtilt',0,12,0.5,2,'°');
+  recalc();
+}
+function getEff(){
+  const t=document.querySelector('input[name=tt]:checked').value;
+  let m=0,e=0;
+  if(t==='mechanical'||t==='combined')m=parseFloat(g('mTilt')?.value||4);
+  if(t==='electrical'||t==='combined')e=parseFloat(g('eTilt')?.value||2);
+  return{mech:m,elec:e,eff:m+e};
+}
+
+/* ── CALCULATIONS ── */
+function calcR(hM,tilt,vBW){
+  const dt=tilt*D2R,up=(tilt-vBW/2)*D2R,lo=(tilt+vBW/2)*D2R;
+  const ml=dt>0?hM/Math.tan(dt):Infinity;
+  const fe=up>0?hM/Math.tan(up):Infinity;
+  const ne=lo>0?hM/Math.tan(lo):0;
+  return{mainLobe:ml,farEdge:fe,nearEdge:ne,footprint:fe-ne};
+}
+function recalc(){
+  g('vBWout').textContent=parseFloat(g('vBW').value).toFixed(1)+'°';
+  g('hBWout').textContent=parseInt(g('hBW').value)+'°';
+  const hM=toM(parseFloat(g('height').value)||30);
+  const dM=toM(parseFloat(g('distance').value)||500);
+  const vBW=parseFloat(g('vBW').value);
+  const crM=toM(parseFloat(g('cellRadius').value)||300);
+  const{eff,mech,elec}=getEff();
+  const res=calcR(hM,eff,vBW);
+  const ra=Math.atan(hM/crM)/D2R;
+  g('recTilt').textContent=ra.toFixed(1)+'°';
+  g('rec3dB').textContent=(ra+vBW/2).toFixed(1)+'°';
+  g('statMain').textContent=fmt(res.mainLobe);
+  g('statFoot').textContent=fmt(res.footprint);
+  g('statEdges').textContent='Near: '+fmt(res.nearEdge)+' → Far: '+fmt(res.farEdge);
+  g('statEff').textContent=eff.toFixed(1)+'° ('+mech.toFixed(1)+'+'+elec.toFixed(1)+')';
+  const inR=dM>=res.nearEdge&&dM<=res.farEdge;
+  g('statRange').style.borderTopColor=inR?'#16a34a':'#ef4444';
+  g('statRangeVal').style.color=inR?'#16a34a':'#ef4444';
+  g('statRangeVal').textContent=inR?'IN RANGE':'OUT OF RANGE';
+  g('statRangeSub').textContent='Dist: '+fmt(dM);
+  drawBeam(hM,eff,vBW,res,dM);
+  debounceDraw();
+}
+function debounceDraw(){clearTimeout(drawTimer);drawTimer=setTimeout(drawSector,450);}
+
+/* ── DEST POINT ── */
+function destPt(lat,lon,dist,bear){
+  const lr=lat*D2R,lo=lon*D2R,br=bear*D2R,ad=dist/RE;
+  const l2=Math.asin(Math.sin(lr)*Math.cos(ad)+Math.cos(lr)*Math.sin(ad)*Math.cos(br));
+  const o2=lo+Math.atan2(Math.sin(br)*Math.sin(ad)*Math.cos(lr),Math.cos(ad)-Math.sin(lr)*Math.sin(l2));
+  return{lat:l2/D2R,lon:o2/D2R};
+}
+
+/* ── NICE AXIS STEP ── */
+function niceStep(approx){
+  if(!approx||approx<=0)return 5;
+  const e=Math.pow(10,Math.floor(Math.log10(approx)));
+  const f=approx/e;
+  if(f<1.5)return e;if(f<3)return 2*e;if(f<7)return 5*e;return 10*e;
+}
+
+/* ── CATMULL-ROM PATH ── */
+function catPath(ctx,pts){
+  if(pts.length<2)return;
+  ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const cp1x=p1.x+(p2.x-p0.x)/6,cp1y=p1.y+(p2.y-p0.y)/6;
+    const cp2x=p2.x-(p3.x-p1.x)/6,cp2y=p2.y-(p3.y-p1.y)/6;
+    ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+  }
+}
+
+/* ── BEAM CANVAS ── */
+function cvVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function drawBeam(hM,tilt,vBW,res,dM){
+  const cv=g('beamCanvas'),ctx=cv.getContext('2d');
+  const W=cv.parentElement.clientWidth||620,H=420;
+  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+
+  const pad={l:72,r:24,t:52,b:56};
+  const pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+
+  // Background
+  const bgG=ctx.createLinearGradient(0,0,0,H);
+  bgG.addColorStop(0,cvVar('--cv-bg0'));bgG.addColorStop(1,cvVar('--cv-bg1'));
+  ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
+
+  const ht=terrain&&terrain.length>1;
+  const antElev=ht?siteElev+hM:hM;
+  const groundElev=ht?siteElev:0;
+
+  // X range
+  const cs=[res.farEdge,res.mainLobe,dM].filter(v=>isFinite(v)&&v>0);
+  const mxD=cs.length?Math.max(...cs)*1.25:3000;
+
+  // Y range (elevation)
+  let yMn,yMx;
+  if(ht){
+    const vis=terrain.filter(p=>p.dist<=mxD);
+    const elevs=vis.map(p=>p.elev);
+    yMn=Math.min(...elevs)-30;
+    yMx=antElev+70;
+  }else{
+    yMn=-5;yMx=hM*1.65+20;
+  }
+  const yR=yMx-yMn||1;
+  const xS=d=>pad.l+(d/mxD)*pw;
+  const yS=v=>pad.t+ph-((v-yMn)/yR)*ph;
+
+  // Terrain interpolation
+  function terrAt(d){
+    if(!ht)return groundElev;
+    const v=terrain;
+    if(d<=0)return v[0].elev;
+    for(let i=1;i<v.length;i++){
+      if(d<=v[i].dist){
+        const t=(d-v[i-1].dist)/(v[i].dist-v[i-1].dist);
+        return v[i-1].elev+t*(v[i].elev-v[i-1].elev);
+      }
+    }
+    return v[v.length-1].elev;
+  }
+
+  // Beam height at distance d for given angle
+  function beamAt(d,ang){return antElev-Math.tan(ang*D2R)*d;}
+
+  // Trace a beam ray, returns canvas coords.
+  // If ang <= 0 the beam points upward — draw as a horizontal line at antenna height
+  // (upper -3dB limit is above horizontal = beam extends to infinity).
+  function traceRay(ang){
+    if(ang<=0){
+      // Horizontal cap: return two pts spanning the chart width
+      return[{x:xS(0),y:yS(antElev)},{x:xS(mxD),y:yS(antElev)}];
+    }
+    const pts=[],st=mxD/240;
+    for(let d=0;d<=mxD+st;d+=st){
+      const be=beamAt(d,ang),te=terrAt(d);
+      if(be<=te&&d>0){pts.push({x:xS(d),y:yS(te)});break;}
+      pts.push({x:xS(d),y:yS(be)});
+    }
+    return pts;
+  }
+
+  // LOS check: is terrain point at index i blocked by earlier terrain?
+  function isBlocked(idx){
+    const p=terrain[idx];
+    for(let j=1;j<idx;j++){
+      const frac=terrain[j].dist/p.dist;
+      const lineElev=antElev+(p.elev-antElev)*frac;
+      if(terrain[j].elev>lineElev+0.8)return true;
+    }
+    return false;
+  }
+
+  // === GRID ===
+  // Vertical grid + X axis labels
+  const xTicks=6;
+  for(let i=0;i<=xTicks;i++){
+    const d=mxD/xTicks*i,x=xS(d);
+    ctx.strokeStyle=cvVar('--cv-grid');ctx.lineWidth=0.7;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ph);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=cvVar('--cv-axis');ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(d>=1000?(d/1000).toFixed(1)+'k':Math.round(d)+'m',x,pad.t+ph+14);
+  }
+  // Horizontal grid + Y axis labels
+  const yStep=niceStep(yR/5);
+  for(let e=Math.ceil(yMn/yStep)*yStep;e<=yMx;e+=yStep){
+    const y=yS(e);
+    if(y<pad.t-2||y>pad.t+ph+2)continue;
+    ctx.strokeStyle=cvVar('--cv-grid');ctx.lineWidth=0.4;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=cvVar('--cv-axis');ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='end';
+    ctx.fillText(Math.round(e)+'',pad.l-5,y+3);
+  }
+  // Y axis label
+  ctx.save();
+  ctx.fillStyle=cvVar('--cv-axis');ctx.font='10px JetBrains Mono,monospace';ctx.textAlign='center';
+  ctx.translate(12,pad.t+ph/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText(ht?'Elevation ASL (m)':'Height (m)',0,0);
+  ctx.restore();
+  // X axis label
+  ctx.fillStyle=cvVar('--cv-axis');ctx.font='10px JetBrains Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('Distance (m)',pad.l+pw/2,H-10);
+
+  // === CLIP TO CHART AREA ===
+  ctx.save();
+  ctx.beginPath();ctx.rect(pad.l-1,pad.t,pw+2,ph+1);ctx.clip();
+
+  // === BEAM FILL ===
+  const uRay=traceRay(tilt-vBW/2),lRay=traceRay(tilt+vBW/2);
+  ctx.beginPath();
+  ctx.moveTo(xS(0),yS(antElev));
+  uRay.forEach(p=>ctx.lineTo(p.x,p.y));
+  [...lRay].reverse().forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.closePath();
+  const bfG=ctx.createLinearGradient(xS(0),0,xS(mxD*0.7),0);
+  bfG.addColorStop(0,cvVar('--cv-beam0'));
+  bfG.addColorStop(0.5,cvVar('--cv-beam1'));
+  bfG.addColorStop(1,cvVar('--cv-beam2'));
+  ctx.fillStyle=bfG;ctx.fill();
+
+  // === SMOOTH TERRAIN FILL & STROKE ===
+  if(ht){
+    const vis=terrain.filter(p=>p.dist<=mxD);
+    const tPts=vis.map(p=>({x:xS(p.dist),y:yS(p.elev)}));
+
+    // Terrain fill (smooth)
+    const tfG=ctx.createLinearGradient(0,pad.t,0,pad.t+ph);
+    tfG.addColorStop(0,cvVar('--cv-terrain0'));
+    tfG.addColorStop(0.45,cvVar('--cv-terrain1'));
+    tfG.addColorStop(1,cvVar('--cv-terrain2'));
+    ctx.beginPath();
+    catPath(ctx,tPts);
+    ctx.lineTo(tPts[tPts.length-1].x,pad.t+ph+1);
+    ctx.lineTo(tPts[0].x,pad.t+ph+1);
+    ctx.closePath();
+    ctx.fillStyle=tfG;ctx.fill();
+
+    // Terrain outline (smooth)
+    ctx.beginPath();
+    catPath(ctx,tPts);
+    ctx.strokeStyle=cvVar('--cv-terrain-stroke');ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.stroke();
+
+    vis.forEach(p=>{
+      const idx=terrain.indexOf(p);
+      if(idx===0)return;
+      const blocked=isBlocked(idx);
+      let color;
+      if(blocked){
+        color='#dc2626';
+      }else{
+        const lookDown=Math.atan2(antElev-p.elev,p.dist)/D2R;
+        const diff=Math.abs(lookDown-tilt);
+        if(diff<=vBW/2){
+          color=diff<=vBW/4?'#22c55e':'#f59e0b';
+        }else{
+          color=cvVar('--cv-outside-dot');
+        }
+      }
+      ctx.beginPath();ctx.arc(xS(p.dist),yS(p.elev),4.5,0,Math.PI*2);
+      ctx.fillStyle=color;ctx.fill();
+      ctx.strokeStyle=cvVar('--cv-dot-stroke');ctx.lineWidth=1;ctx.stroke();
+    });
+
+  }else{
+    // Flat earth ground fill
+    const gfG=ctx.createLinearGradient(0,yS(groundElev),0,pad.t+ph);
+    gfG.addColorStop(0,cvVar('--cv-gnd0'));gfG.addColorStop(1,cvVar('--cv-gnd1'));
+    ctx.fillStyle=gfG;
+    ctx.fillRect(pad.l,yS(groundElev),pw,pad.t+ph-yS(groundElev)+1);
+    ctx.strokeStyle=cvVar('--cv-gnd-stroke');ctx.lineWidth=1.5;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(pad.l,yS(groundElev));ctx.lineTo(pad.l+pw,yS(groundElev));ctx.stroke();
+  }
+
+  // === BEAM EDGE LINES ===
+  ctx.setLineDash([6,4]);ctx.lineWidth=1.3;ctx.strokeStyle=cvVar('--cv-edge');
+  ctx.beginPath();uRay.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+  ctx.beginPath();lRay.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // If upper lobe was capped, show annotation
+  if((tilt-vBW/2)<=0){
+    const capY=yS(antElev);
+    ctx.save();
+    ctx.font='bold 8px JetBrains Mono,monospace';ctx.textAlign='left';
+    ctx.fillStyle='rgba(245,158,11,0.85)';
+    ctx.fillText('▲ Upper lobe above horizon (capped)',pad.l+6,capY-5);
+    ctx.restore();
+  }
+
+  // === MAIN LOBE RAY ===
+  const mRay=traceRay(tilt);
+  ctx.strokeStyle='#22c55e';ctx.lineWidth=2.2;ctx.setLineDash([]);
+  ctx.beginPath();mRay.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+  if(mRay.length>0){
+    const last=mRay[mRay.length-1];
+    ctx.beginPath();ctx.arc(last.x,last.y,5.5,0,Math.PI*2);
+    ctx.fillStyle='#22c55e';ctx.fill();
+    ctx.strokeStyle=cvVar('--cv-dot-stroke');ctx.lineWidth=1.3;ctx.stroke();
+  }
+
+  // === SELECTED DISTANCE LINE ===
+  const dX=xS(Math.min(dM,mxD));
+  ctx.setLineDash([6,4]);ctx.strokeStyle=cvVar('--cv-dist-line');ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(dX,pad.t);ctx.lineTo(dX,pad.t+ph);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // === ANTENNA TOWER ===
+  const ax=xS(0);
+  const atop=yS(antElev),abot=yS(groundElev);
+  ctx.fillStyle=cvVar('--cv-tower');
+  ctx.fillRect(ax-3,atop,6,Math.max(4,abot-atop));
+  ctx.fillStyle=cvVar('--cv-tower-text');ctx.font='bold 9px JetBrains Mono,monospace';ctx.textAlign='left';
+  ctx.fillText(hM.toFixed(0)+'m AGL',ax+8,(atop+abot)/2+3);
+  ctx.beginPath();ctx.arc(ax,atop,4.5,0,Math.PI*2);
+  ctx.fillStyle=cvVar('--cv-ant-fill');ctx.fill();
+  ctx.strokeStyle=cvVar('--cv-ant-stroke');ctx.lineWidth=1.8;ctx.stroke();
+
+  // Restore clip
+  ctx.restore();
+
+  // === HEADER TEXT ===
+  ctx.font='bold 10px JetBrains Mono,monospace';
+  const mlLbl=isFinite(res.mainLobe)&&res.mainLobe>0
+    ?(res.mainLobe>=1000?(res.mainLobe/1000).toFixed(2)+' km':res.mainLobe.toFixed(0)+' m'):'∞';
+  ctx.fillStyle=cvVar('--cv-main-hit');ctx.textAlign='left';
+  ctx.fillText('Main hit: '+mlLbl,pad.l+4,pad.t-12);
+  ctx.fillStyle=cvVar('--cv-tilt-label');ctx.textAlign='center';
+  ctx.fillText('Downtilt '+tilt.toFixed(1)+'° | V-BW '+vBW.toFixed(1)+'°',pad.l+pw/2,pad.t-12);
+  ctx.fillStyle=cvVar('--cv-model-label');ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='right';
+  ctx.fillText(ht?'Green=strong · Amber=weak · Red=shadowed':'Flat earth model',pad.l+pw-2,pad.t-12);
+
+  // === BOTTOM LEGEND ===
+  const ly=pad.t+ph+40;
+  const legItems=[
+    {type:'line',color:'#22c55e',dash:false,lw:2,label:'Main lobe ray'},
+    {type:'line',color:cvVar('--cv-edge'),dash:true,lw:1.3,label:'Lobe limits'},
+    {type:'dot',color:'#22c55e',label:'Strong'},
+    {type:'dot',color:'#f59e0b',label:'Weak'},
+    {type:'dot',color:'#dc2626',label:'Shadowed'},
+    {type:'line',color:cvVar('--cv-dist-line'),dash:true,lw:1.5,label:'Sel. dist'},
+  ];
+  let lx=pad.l;
+  ctx.font='9px JetBrains Mono,monospace';
+  legItems.forEach(item=>{
+    const tw=ctx.measureText(item.label).width;
+    if(lx+tw+40>W-pad.r){return;}
+    if(item.type==='dot'){
+      ctx.beginPath();ctx.arc(lx+5,ly-3,4,0,Math.PI*2);
+      ctx.fillStyle=item.color;ctx.fill();
+      ctx.strokeStyle=cvVar('--cv-dot-stroke');ctx.lineWidth=0.8;ctx.stroke();
+    }else{
+      ctx.setLineDash(item.dash?[5,3]:[]);
+      ctx.strokeStyle=item.color;ctx.lineWidth=item.lw||1.5;
+      ctx.beginPath();ctx.moveTo(lx,ly-3);ctx.lineTo(lx+14,ly-3);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle=cvVar('--cv-leg-text');ctx.textAlign='left';
+    ctx.fillText(item.label,lx+18,ly);
+    lx+=tw+30;
+  });
+
+  // Update profile title
+  g('profileTitle').textContent=ht
+    ?`Beam Profile — Terrain (site ${siteElev.toFixed(1)} m ASL)`
+    :'Beam Profile (flat earth)';
+}
+
+/* ── TERRAIN FETCH ── */
+async function fetchWT(url,ms){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(url,{signal:c.signal,mode:'cors'});clearTimeout(t);return r;}
+  catch(e){clearTimeout(t);if(e.name==='AbortError')throw new Error('Timed out. Retry.');throw e;}
+}
+async function fetchTerrain(){
+  const c=parseLL();
+  if(!c){showErr('Invalid lat/lon.');return;}
+  const hM=toM(parseFloat(g('height').value)||30),dM=toM(parseFloat(g('distance').value)||500);
+  const az=parseFloat(g('azimuth').value)||0,{eff}=getEff(),vBW=parseFloat(g('vBW').value);
+  const res=calcR(hM,eff,vBW);
+  const pD=Math.max(dM,isFinite(res.farEdge)&&res.farEdge<50000?res.farEdge:dM,300);
+  const N=28,pts=[];
+  for(let i=0;i<=N;i++){const d=(pD/N)*i,p=destPt(c.lat,c.lon,d,az);pts.push({...p,dist:d});}
+  const url=`https://api.open-meteo.com/v1/elevation?latitude=${pts.map(p=>p.lat.toFixed(5)).join(',')}&longitude=${pts.map(p=>p.lon.toFixed(5)).join(',')}`;
+  const btn=g('btnFetch');btn.disabled=true;btn.textContent='Fetching...';g('errorBox').style.display='none';
+  try{
+    const r=await fetchWT(url,13000);if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();if(d.error)throw new Error(d.reason||'API error');
+    if(!Array.isArray(d.elevation))throw new Error('Unexpected response');
+    terrain=pts.map((p,i)=>({dist:p.dist,elev:d.elevation[i]??0}));
+    siteElev=terrain[0].elev;
+    g('btnReset').style.display='';btn.textContent='Refresh';
+    g('terrainInfo').style.display='';
+    g('terrainInfo').innerHTML=`Site: <span style="color:var(--accent)">${siteElev.toFixed(1)} m ASL</span> | ${terrain.length} pts | ${(terrain[terrain.length-1].dist/1000).toFixed(2)} km`;
+    recalc();
+  }catch(e){showErr(e.message);}
+  finally{btn.disabled=false;}
+}
+function showErr(msg){const b=g('errorBox');b.style.display='';b.textContent=msg;}
+function resetTerrain(){
+  terrain=null;siteElev=0;
+  g('btnReset').style.display='none';g('btnFetch').textContent='Fetch Terrain';
+  g('terrainInfo').style.display='none';g('errorBox').style.display='none';
+  recalc();
+}
+
+/* ── MAP SECTOR ── */
+function sectorPoly(lat,lon,az,hBW,R,steps){
+  steps=steps||52;
+  const pts=[[lat,lon]];
+  for(let i=0;i<=steps;i++){
+    const b=(az-hBW/2)+hBW*i/steps,p=destPt(lat,lon,R,b);
+    pts.push([p.lat,p.lon]);
+  }
+  pts.push([lat,lon]);return pts;
+}
+function annularPoly(lat,lon,az,hBW,rIn,rOut,steps){
+  steps=steps||52;const pts=[];
+  for(let i=0;i<=steps;i++){const b=(az-hBW/2)+hBW*i/steps,p=destPt(lat,lon,rOut,b);pts.push([p.lat,p.lon]);}
+  for(let i=steps;i>=0;i--){const b=(az-hBW/2)+hBW*i/steps,p=destPt(lat,lon,Math.max(rIn,5),b);pts.push([p.lat,p.lon]);}
+  return pts;
+}
+/* ── MEASURE STATE ── */
+let measureMode=false,measurePts=[],measureLayers=[];
+
+function haversine(a,b){
+  const R=6371000,dLat=(b.lat-a.lat)*D2R,dLon=(b.lng-a.lng)*D2R;
+  const s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+}
+function fmtDist(m){return m>=1000?(m/1000).toFixed(3)+' km':m.toFixed(1)+' m';}
+
+function toggleMeasure(){
+  measureMode=!measureMode;
+  const btn=document.getElementById('btnMeasure');
+  if(measureMode){
+    btn.style.background='#f59e0b';btn.style.color='#fff';btn.textContent='✕ Stop';
+    mapObj.getContainer().style.cursor='crosshair';
+    mapObj.on('click',onMeasureClick);
+    mapObj.on('dblclick',onMeasureDbl);
+  }else{
+    btn.style.background='';btn.style.color='';btn.textContent='📏 Measure';
+    mapObj.getContainer().style.cursor='';
+    mapObj.off('click',onMeasureClick);
+    mapObj.off('dblclick',onMeasureDbl);
+    clearMeasure();
+  }
+}
+
+function clearMeasure(){
+  measurePts=[];
+  measureLayers.forEach(l=>mapObj.removeLayer(l));
+  measureLayers=[];
+}
+
+function addML(l){l.addTo(mapObj);measureLayers.push(l);return l;}
+
+function onMeasureClick(e){
+  // Leaflet fires click then dblclick — ignore the 2nd click of a dblclick
+  if(e.originalEvent._measureDbl)return;
+  measurePts.push(e.latlng);
+  redrawMeasure();
+}
+
+function onMeasureDbl(e){
+  // Mark both clicks of the dblclick so they're ignored by onClick
+  e.originalEvent._measureDbl=true;
+  // Remove last point added by the second click if it snuck in
+  if(measurePts.length>1)measurePts.pop();
+  redrawMeasure(true);
+  // Stay in measure mode — user can keep adding segments or click Stop
+}
+
+function redrawMeasure(final){
+  measureLayers.forEach(l=>mapObj.removeLayer(l));
+  measureLayers=[];
+  if(measurePts.length===0)return;
+
+  // Draw line
+  if(measurePts.length>1){
+    addML(L.polyline(measurePts,{color:'#f59e0b',weight:2.5,dashArray:'8 5',opacity:0.95}));
+  }
+
+  // Draw dots + segment labels
+  let total=0;
+  measurePts.forEach((pt,i)=>{
+    // Dot
+    addML(L.circleMarker(pt,{radius:5,color:'#f59e0b',weight:2,fillColor:'#ffffff',fillOpacity:1}));
+    // Segment distance label
+    if(i>0){
+      const seg=haversine(measurePts[i-1],pt);
+      total+=seg;
+      const mid=L.latLng((measurePts[i-1].lat+pt.lat)/2,(measurePts[i-1].lng+pt.lng)/2);
+      const segIcon=L.divIcon({
+        className:'',
+        html:`<div style="background:rgba(255,255,255,0.92);border:1px solid #f59e0b;border-radius:4px;padding:2px 6px;font-size:10px;font-family:JetBrains Mono,monospace;color:#b45309;white-space:nowrap">${fmtDist(seg)}</div>`,
+        iconAnchor:[30,10]
+      });
+      addML(L.marker(mid,{icon:segIcon,interactive:false}));
+    }
+  });
+
+  // Total label on last point
+  if(measurePts.length>1){
+    const last=measurePts[measurePts.length-1];
+    const totIcon=L.divIcon({
+      className:'',
+      html:`<div style="background:rgba(255,255,255,0.95);border:1px solid #0284c7;border-radius:5px;padding:3px 8px;font-size:11px;font-family:JetBrains Mono,monospace;color:#0284c7;white-space:nowrap;font-weight:700">Total: ${fmtDist(total)}</div>`,
+      iconAnchor:[-8,10]
+    });
+    addML(L.marker(last,{icon:totIcon,interactive:false}));
+  }
+
+  // Hint label
+  const hint=final?'Dbl-click to end segment':'Click to add point · Dbl-click to end';
+  if(measurePts.length>=1){
+    const hIcon=L.divIcon({
+      className:'',
+      html:`<div style="background:rgba(255,255,255,0.85);border-radius:4px;padding:2px 7px;font-size:9px;font-family:JetBrains Mono,monospace;color:#64748b;white-space:nowrap">${hint}</div>`,
+      iconAnchor:[60,-8]
+    });
+    addML(L.marker(measurePts[measurePts.length-1],{icon:hIcon,interactive:false}));
+  }
+}
+
+function initMap(){
+  const c=parseLL(),center=c?[c.lat,c.lon]:[7.075,125.61];
+  mapObj=L.map('map',{zoomControl:true,doubleClickZoom:false}).setView(center,13);
+  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{
+    attribution:'© <a href="https://maps.google.com">Google Maps</a>',maxZoom:20,subdomains:['mt0','mt1','mt2','mt3']
+  }).addTo(mapObj);
+
+  // Custom control — Measure + Clear buttons
+  const MeasureCtrl=L.Control.extend({
+    options:{position:'topright'},
+    onAdd:function(){
+      const div=L.DomUtil.create('div','');
+      div.style.cssText='display:flex;flex-direction:column;gap:4px';
+      div.innerHTML=`
+        <button id="btnMeasure" onclick="toggleMeasure()" style="background:var(--btp-bg);color:var(--btp-color);border:1px solid var(--btp-border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:JetBrains Mono,monospace;white-space:nowrap">📏 Measure</button>
+        <button onclick="clearMeasure()" style="background:var(--card-bg);color:var(--text-muted);border:1px solid var(--card-border);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:JetBrains Mono,monospace">🗑 Clear</button>`;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    }
+  });
+  new MeasureCtrl().addTo(mapObj);
+
+  mapReady=true;
+  setTimeout(()=>{mapObj.invalidateSize();drawSector();},400);
+}
+function clrMap(){mapLayers.forEach(l=>mapObj.removeLayer(l));mapLayers=[];}
+function addL(l){l.addTo(mapObj);mapLayers.push(l);return l;}
+
+function drawSector(){
+  if(!mapReady)return;
+  clrMap();
+  const c=parseLL();
+  if(!c){g('mapFooter').textContent='Enter valid coordinates to show the sector.';return;}
+  const hM=toM(parseFloat(g('height').value)||30);
+  const vBW=parseFloat(g('vBW').value),hBW=parseInt(g('hBW').value);
+  const az=parseFloat(g('azimuth').value)||0;
+  const{eff}=getEff();
+  const res=calcR(hM,eff,vBW);
+  const{lat,lon}=c;
+  const ml=res.mainLobe,ne=res.nearEdge,fe=res.farEdge;
+  const outerR=isFinite(ml)&&ml>0?ml*2:(isFinite(fe)&&fe>0?fe*1.1:2000);
+
+  addL(L.polygon(sectorPoly(lat,lon,az,hBW,outerR),{
+    color:'#1a3a5f',weight:2,fillColor:'#dc5032',fillOpacity:0.3
+  }));
+
+  if(isFinite(ne)&&isFinite(fe)&&fe>ne&&fe>0){
+    addL(L.polygon(annularPoly(lat,lon,az,hBW,Math.max(ne,10),fe),{
+      color:'transparent',weight:0,fillColor:'#22c55e',fillOpacity:0.45
+    }));
+  }
+
+  if(isFinite(ml)&&ml>0){
+    const mp=destPt(lat,lon,ml,az);
+    addL(L.polyline([[lat,lon],[mp.lat,mp.lon]],{color:'#22c55e',weight:2.5,dashArray:'10 7'}));
+    addL(L.circleMarker([mp.lat,mp.lon],{radius:7,color:'#0a1628',weight:2,fillColor:'#f59e0b',fillOpacity:1}));
+  }
+
+  if(isFinite(ne)&&ne>10){
+    const np=destPt(lat,lon,ne,az);
+    addL(L.circleMarker([np.lat,np.lon],{radius:5,color:'#0a1628',weight:1.5,fillColor:'#22c55e',fillOpacity:1}));
+  }
+
+  addL(L.circleMarker([lat,lon],{radius:9,color:'#38bdf8',weight:2.5,fillColor:'#0a1628',fillOpacity:1}));
+
+  try{
+    const bPts=sectorPoly(lat,lon,az,hBW,outerR).map(p=>L.latLng(p[0],p[1]));
+    mapObj.fitBounds(L.latLngBounds(bPts).pad(0.15));
+  }catch(e){}
+
+  g('smMain').textContent=fmt(ml);
+  g('smFoot').textContent=fmt(ne)+' to '+fmt(fe);
+  g('smAz').textContent=az+'°';
+  g('smHBW').textContent=hBW+'°';
+  g('smRad').textContent=fmt(outerR)+' (2× main lobe)';
+  g('smNear').textContent=fmt(ne);
+  g('mapFooter').textContent=`Site ${lat.toFixed(6)}, ${lon.toFixed(6)} | Azimuth ${az}° | H-BW ${hBW}° | Radius ${fmt(outerR)}`;
+}
+
+/* ── KMZ EXPORT ── */
+async function exportKMZ(){
+  if(typeof JSZip==='undefined'){alert('JSZip not loaded yet. Try again.');return;}
+  const c=parseLL();if(!c){alert('Invalid coordinates.');return;}
+  const hM=toM(parseFloat(g('height').value)||30);
+  const vBW=parseFloat(g('vBW').value),hBW=parseInt(g('hBW').value);
+  const az=parseFloat(g('azimuth').value)||0;
+  const{eff,mech,elec}=getEff();
+  const res=calcR(hM,eff,vBW);
+  const{lat,lon}=c;
+  const ml=res.mainLobe,ne=res.nearEdge,fe=res.farEdge;
+  const outerR=isFinite(ml)&&ml>0?ml*2:(isFinite(fe)&&fe>0?fe*1.1:2000);
+
+  const p2c=pts=>pts.map(p=>`${p[1].toFixed(7)},${p[0].toFixed(7)},0`).join('\n          ');
+  const fPts=sectorPoly(lat,lon,az,hBW,outerR);
+  const fpPts=(isFinite(ne)&&isFinite(fe)&&fe>ne)?annularPoly(lat,lon,az,hBW,Math.max(ne,10),fe):null;
+  const mPt=isFinite(ml)&&ml>0?destPt(lat,lon,ml,az):null;
+
+  const kml=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <n>Antenna Sector Az${az}</n>
+  <description>Site: ${lat.toFixed(6)}, ${lon.toFixed(6)} | Az: ${az}° | H-BW: ${hBW}° | Tilt: ${eff.toFixed(1)}° | Height: ${hM.toFixed(1)}m</description>
+  <Style id="s1"><LineStyle><color>ff5f3a1a</color><width>2</width></LineStyle><PolyStyle><color>4d3250dc</color></PolyStyle></Style>
+  <Style id="s2"><LineStyle><color>00000000</color><width>0</width></LineStyle><PolyStyle><color>735ec522</color></PolyStyle></Style>
+  <Style id="s3"><LineStyle><color>ff5ec522</color><width>3</width></LineStyle><PolyStyle><color>00000000</color></PolyStyle></Style>
+  <Placemark>
+    <n>Sector Az${az} (full)</n>
+    <styleUrl>#s1</styleUrl>
+    <Polygon><altitudeMode>clampToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>
+          ${p2c(fPts)}
+    </coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+${fpPts?`  <Placemark><n>Footprint Zone</n><styleUrl>#s2</styleUrl><Polygon><altitudeMode>clampToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>
+          ${p2c(fpPts)}
+    </coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`:''}
+${mPt?`  <Placemark><n>Main Lobe</n><styleUrl>#s3</styleUrl><LineString><altitudeMode>clampToGround</altitudeMode><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0 ${mPt.lon.toFixed(7)},${mPt.lat.toFixed(7)},0</coordinates></LineString></Placemark>
+  <Placemark><n>Main Lobe Impact (${fmt(ml)})</n><Point><coordinates>${mPt.lon.toFixed(7)},${mPt.lat.toFixed(7)},0</coordinates></Point></Placemark>`:''}
+  <Placemark><n>Site (Az ${az}°)</n>
+    <description>H: ${hM.toFixed(1)}m | Tilt: ${eff.toFixed(1)}° | VBW: ${vBW}° | HBW: ${hBW}°</description>
+    <Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point>
+  </Placemark>
+</Document></kml>`;
+
+  try{
+    const zip=new JSZip();zip.file('doc.kml',kml);
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`sector_az${az}_${lat.toFixed(4)}_${lon.toFixed(4)}.kmz`;
+    a.click();
+  }catch(e){alert('KMZ export failed: '+e.message);}
+}
+
+/* ── CSV EXPORT ── */
+function exportCSV(){
+  const hM=toM(parseFloat(g('height').value)||30),dM=toM(parseFloat(g('distance').value)||500);
+  const{eff,mech,elec}=getEff(),vBW=parseFloat(g('vBW').value),hBW=parseInt(g('hBW').value);
+  const crM=toM(parseFloat(g('cellRadius').value)||300),res=calcR(hM,eff,vBW);
+  const ra=Math.atan(hM/crM)/D2R,c=parseLL();
+  let csv='Parameter,Value,Unit\n';
+  csv+=`Antenna Height,${hM.toFixed(2)},m\n`;
+  if(c){csv+=`Latitude,${c.lat},deg\nLongitude,${c.lon},deg\n`;}
+  csv+=`Azimuth,${g('azimuth').value},deg\nMechanical Tilt,${mech.toFixed(1)},deg\nElectrical Tilt,${elec.toFixed(1)},deg\nEffective Tilt,${eff.toFixed(1)},deg\n`;
+  csv+=`Vertical BW,${vBW},deg\nHorizontal BW,${hBW},deg\nMain Lobe Impact,${isFinite(res.mainLobe)?res.mainLobe.toFixed(2):'inf'},m\n`;
+  csv+=`Near Edge,${res.nearEdge.toFixed(2)},m\nFar Edge,${isFinite(res.farEdge)?res.farEdge.toFixed(2):'inf'},m\nFootprint,${isFinite(res.footprint)?res.footprint.toFixed(2):'inf'},m\n`;
+  csv+=`Cell Radius,${crM.toFixed(2)},m\nRec Tilt,${ra.toFixed(2)},deg\nSite Elev ASL,${siteElev.toFixed(1)},m\n`;
+  if(terrain){csv+='\nDist (m),Elev ASL (m),Relative (m)\n';terrain.forEach(p=>csv+=`${p.dist.toFixed(1)},${p.elev.toFixed(1)},${(p.elev-siteElev).toFixed(1)}\n`);}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='antenna_tilt_results.csv';a.click();
+}
+
+/* ── THEME TOGGLE ── */
+let isDark=false;
+function toggleTheme(){
+  isDark=!isDark;
+  document.body.classList.toggle('dark',isDark);
+  const btn=g('themeBtn');
+  btn.textContent=isDark?'☀️ Light':'🌙 Dark';
+  recalc(); // redraw canvas with new theme vars
+}
+
+/* ── AUTO TERRAIN DEBOUNCE ── */
+let terrainTimer=null;
+function debounceTerrain(){
+  clearTimeout(terrainTimer);
+  const c=parseLL();
+  if(!c)return; // only fetch if coords are valid
+  terrainTimer=setTimeout(fetchTerrain,1200);
+}
+
+/* ── BAND PRESETS ── */
+const BAND_PRESETS = {
+  L700:  { model: '3JR39411ABAA-TY',  freq: '700 MHz',  vBW: 8.5, hBW: 65 },
+  L2100: { model: '3JR39413ABAA-RFS', freq: '2100 MHz', vBW: 6.0, hBW: 65 },
+  L2600: { model: '3JR39411AFAA',     freq: '2600 MHz', vBW: 5.0, hBW: 65 }
+};
+
+function applyBand(key) {
+  const p = BAND_PRESETS[key];
+  if (!p) return;
+
+  // Highlight active button
+  document.querySelectorAll('.band-btn').forEach(b => b.classList.remove('active'));
+  const btn = g('band-' + key);
+  if (btn) btn.classList.add('active');
+
+  // Update model label
+  const lbl = g('bandModelLabel');
+  if (lbl) lbl.textContent = p.model + ' · ' + p.freq;
+
+  // Set beamwidth sliders only — tilt settings are preserved
+  g('vBW').value = p.vBW;
+  g('hBW').value = p.hBW;
+
+  recalc();
+}
+
+/* ── INIT ── */
+document.querySelectorAll('input[name=tt]').forEach(r=>r.addEventListener('change',buildSliders));
+window.addEventListener('load',()=>{
+  buildSliders();validateLL();
+  if(typeof L!=='undefined')initMap();
+  else setTimeout(()=>{if(typeof L!=='undefined')initMap();},800);
+});
+</script>
