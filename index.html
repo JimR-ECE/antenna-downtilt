@@ -148,7 +148,7 @@ canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border
     </div>
   </div>
   <p style="font-size:12px;color:var(--text-muted)">Beam profile · Terrain · Sector map · KMZ export</p>
-  <p style="font-size:11px;color:var(--text-faint);margin-top:3px">Created by <span style="color:var(--author-color);font-weight:600">Reianjim Ramos</span> · <a href="mailto:reianjimr@gmail.com" style="color:var(--author-color);text-decoration:none">reianjimr@gmail.com</a></p>
+  <p style="font-size:11px;color:var(--text-faint);margin-top:3px">Created by <span style="color:var(--author-color);font-weight:600">Reianjim Ramos</span> · <a href="mailto:reianjimr@gmail.com" style="color:var(--author-color);text-decoration:none">reianjimr@gmail.com</a> · <span id="visitCounter" style="opacity:0;transition:opacity .4s">👁 <span id="visitCount">—</span> visits</span></p>
 </div>
 
 <!-- UNIT TOGGLE -->
@@ -1240,10 +1240,28 @@ function applyBand(key) {
   recalc();
 }
 
+/* ── VISIT COUNTER ── */
+async function trackVisit(){
+  try{
+    // countapi.xyz — free, no auth, persists globally
+    const res=await fetch('https://api.countapi.xyz/hit/reianjimr-antenna-downtilt/visits');
+    const data=await res.json();
+    if(data&&data.value){
+      const el=g('visitCount');
+      const wrap=g('visitCounter');
+      if(el)el.textContent=data.value.toLocaleString();
+      if(wrap)wrap.style.opacity='1';
+    }
+  }catch(e){
+    // silently fail — counter is cosmetic, don't break the app
+  }
+}
+
 /* ── INIT ── */
 document.querySelectorAll('input[name=tt]').forEach(r=>r.addEventListener('change',buildSliders));
 window.addEventListener('load',()=>{
   buildSliders();validateLL();
+  trackVisit();
   if(typeof L!=='undefined')initMap();
   else setTimeout(()=>{if(typeof L!=='undefined')initMap();},800);
 });
