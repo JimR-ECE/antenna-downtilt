@@ -890,8 +890,10 @@ function drawSector(){
     color:'#1a3a5f',weight:2,fillColor:'#dc5032',fillOpacity:0.3
   }));
 
-  if(isFinite(ne)&&isFinite(fe)&&fe>ne&&fe>0){
-    addL(L.polygon(annularPoly(lat,lon,az,hBW,Math.max(ne,10),fe),{
+  // Draw footprint zone: use outerR as fallback when farEdge is infinite
+  const feForDraw=isFinite(fe)&&fe>0?fe:outerR;
+  if(isFinite(ne)&&feForDraw>ne&&feForDraw>0){
+    addL(L.polygon(annularPoly(lat,lon,az,hBW,Math.max(ne,10),feForDraw),{
       color:'transparent',weight:0,fillColor:'#22c55e',fillOpacity:0.45
     }));
   }
