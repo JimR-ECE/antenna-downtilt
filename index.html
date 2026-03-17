@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -30,8 +31,8 @@
   --cv-beam0:rgba(2,132,199,0.22);--cv-beam1:rgba(2,132,199,0.09);--cv-beam2:rgba(2,132,199,0.02);
   --cv-edge:rgba(2,132,199,0.65);
   --cv-gnd0:rgba(134,197,117,0.45);--cv-gnd1:rgba(134,197,117,0.1);--cv-gnd-stroke:#86c875;
-  --cv-terrain0:rgba(130,85,45,0.82);--cv-terrain1:rgba(95,62,28,0.72);--cv-terrain2:rgba(55,35,15,0.55);
-  --cv-terrain-stroke:rgba(160,105,40,0.7);
+  --cv-terrain0:rgba(130,85,45,0.98);--cv-terrain1:rgba(95,62,28,0.98);--cv-terrain2:rgba(55,35,15,0.98);
+  --cv-terrain-stroke:rgba(160,105,40,0.9);
   --cv-tower:#94a3b8;--cv-tower-text:#475569;--cv-ant-fill:#1e293b;--cv-ant-stroke:#0284c7;
   --cv-dot-stroke:rgba(255,255,255,0.85);--cv-leg-text:#64748b;
   --cv-main-hit:#16a34a;--cv-tilt-label:#0284c7;--cv-model-label:#94a3b8;
@@ -66,8 +67,8 @@ body.dark{
   --cv-beam0:rgba(56,189,248,0.32);--cv-beam1:rgba(56,189,248,0.13);--cv-beam2:rgba(56,189,248,0.02);
   --cv-edge:rgba(100,210,252,0.72);
   --cv-gnd0:rgba(35,70,45,0.40);--cv-gnd1:rgba(15,35,20,0.12);--cv-gnd-stroke:#2a4a3a;
-  --cv-terrain0:rgba(130,85,45,0.82);--cv-terrain1:rgba(95,62,28,0.72);--cv-terrain2:rgba(55,35,15,0.55);
-  --cv-terrain-stroke:rgba(190,130,65,0.75);
+  --cv-terrain0:rgba(130,85,45,0.98);--cv-terrain1:rgba(95,62,28,0.98);--cv-terrain2:rgba(55,35,15,0.98);
+  --cv-terrain-stroke:rgba(190,130,65,0.9);
   --cv-tower:#4a6a8a;--cv-tower-text:#8ab8d8;--cv-ant-fill:#d4e4f5;--cv-ant-stroke:#38bdf8;
   --cv-dot-stroke:rgba(4,10,20,0.85);--cv-leg-text:#5a7a9a;
   --cv-main-hit:#22c55e;--cv-tilt-label:#38bdf8;--cv-model-label:#5a7a9a;
@@ -145,6 +146,7 @@ canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border
     <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
       <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
       <button class="btn bte" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn btp" id="snapBtn" onclick="takeSnapshot()" title="Save full-page screenshot as PNG">📸 Snapshot</button>
     </div>
   </div>
   <p style="font-size:12px;color:var(--text-muted)">Beam profile · Terrain · Sector map · KMZ export</p>
@@ -261,6 +263,18 @@ canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border
           <div class="iw"><input type="number" id="azimuth" value="0" min="0" max="360" step="1" oninput="debounceDraw();debounceTerrain()"><span class="sfx">°</span></div>
         </div>
       </div>
+      <div class="g2">
+        <div>
+          <div class="lbl" style="display:flex;justify-content:space-between">
+            Profile distance
+            <span id="profDistHint" style="color:var(--accent);font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">auto</span>
+          </div>
+          <div class="iw"><input type="number" id="profDist" value="" min="100" max="50000" step="100" placeholder="auto" oninput="onProfDistInput()"><span class="sfx" id="pdUnit">m</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <div class="lh" style="line-height:1.6">Auto-uses main lobe distance.<br>Override here for longer profiles.</div>
+        </div>
+      </div>
       <div id="errorBox" style="display:none" class="eb"></div>
       <div id="terrainInfo" class="ir" style="display:none"></div>
     </div>
@@ -325,7 +339,7 @@ function setUnit(u){
   document.querySelectorAll('.pl').forEach(p=>p.classList.remove('active'));
   g('pill-'+u).classList.add('active');
   const s=u==='usa'?'ft':'m';
-  ['hUnit','dUnit','crUnit'].forEach(id=>{const e=g(id);if(e)e.textContent=s});
+  ['hUnit','dUnit','crUnit','pdUnit'].forEach(id=>{const e=g(id);if(e)e.textContent=s});
   recalc();
 }
 function toM(v){return unit==='usa'?v/3.28084:v}
@@ -616,21 +630,33 @@ function drawBeam(hM,tilt,vBW,res,dM){
     const vis=terrain.filter(p=>p.dist<=mxD);
     const tPts=vis.map(p=>({x:xS(p.dist),y:yS(p.elev)}));
 
-    // Terrain fill (smooth)
+    // Terrain fill — extend to chart right edge if terrain is shorter than mxD
+    const lastPt=tPts[tPts.length-1];
+    const rightEdgeX=pad.l+pw+1;
+    const bottomY=pad.t+ph+2;
+
     const tfG=ctx.createLinearGradient(0,pad.t,0,pad.t+ph);
     tfG.addColorStop(0,cvVar('--cv-terrain0'));
     tfG.addColorStop(0.45,cvVar('--cv-terrain1'));
     tfG.addColorStop(1,cvVar('--cv-terrain2'));
+
     ctx.beginPath();
     catPath(ctx,tPts);
-    ctx.lineTo(tPts[tPts.length-1].x,pad.t+ph+1);
-    ctx.lineTo(tPts[0].x,pad.t+ph+1);
+    // If terrain ends before the right edge, extend horizontally at the last elevation
+    if(lastPt.x < rightEdgeX){
+      ctx.lineTo(rightEdgeX,lastPt.y); // flat extension at last known elevation
+    }
+    ctx.lineTo(rightEdgeX,bottomY);
+    ctx.lineTo(tPts[0].x,bottomY);
     ctx.closePath();
     ctx.fillStyle=tfG;ctx.fill();
 
-    // Terrain outline (smooth)
+    // Terrain outline — only draw up to the actual terrain data, then flat extension
     ctx.beginPath();
     catPath(ctx,tPts);
+    if(lastPt.x < rightEdgeX){
+      ctx.lineTo(rightEdgeX,lastPt.y);
+    }
     ctx.strokeStyle=cvVar('--cv-terrain-stroke');ctx.lineWidth=2;ctx.setLineDash([]);
     ctx.stroke();
 
@@ -768,11 +794,35 @@ async function fetchWT(url,ms){
 async function fetchTerrain(){
   const c=parseLL();
   if(!c){showErr('Invalid lat/lon.');return;}
-  const hM=toM(parseFloat(g('height').value)||30),dM=toM(parseFloat(g('distance').value)||500);
-  const az=parseFloat(g('azimuth').value)||0,{eff}=getEff(),vBW=parseFloat(g('vBW').value);
-  const res=calcR(hM,eff,vBW);
-  const pD=Math.max(dM,isFinite(res.farEdge)&&res.farEdge<50000?res.farEdge:dM,300);
-  const N=28,pts=[];
+  const hM=toM(parseFloat(g('height').value)||30);
+  const dM=toM(parseFloat(g('distance').value)||500);
+  const az=parseFloat(g('azimuth').value)||0;
+  const{eff}=getEff(),vBW=parseFloat(g('vBW').value);
+  const flatRes=calcRFlat(hM,eff,vBW);
+
+  // Profile distance priority:
+  // 1. Manual override from profDist field
+  // 2. Main lobe distance (flat-earth) × 1.5 for context
+  // 3. Far edge if finite
+  // 4. Distance-to-check as last resort
+  const manualPD=toM(parseFloat(g('profDist').value)||0);
+  let pD;
+  if(manualPD>=100){
+    pD=manualPD;
+  }else if(isFinite(flatRes.mainLobe)&&flatRes.mainLobe>0&&flatRes.mainLobe<50000){
+    pD=Math.min(flatRes.mainLobe*1.5, 30000);
+  }else if(isFinite(flatRes.farEdge)&&flatRes.farEdge>0&&flatRes.farEdge<50000){
+    pD=flatRes.farEdge*1.1;
+  }else{
+    pD=Math.max(dM,300);
+  }
+
+  // Update hint with the resolved distance
+  const hint=g('profDistHint');
+  if(hint)hint.textContent=manualPD>=100?'manual':'auto → '+fmt(pD);
+
+  // Use 40 sample points for better resolution over longer profiles
+  const N=40,pts=[];
   for(let i=0;i<=N;i++){const d=(pD/N)*i,p=destPt(c.lat,c.lon,d,az);pts.push({...p,dist:d});}
   const url=`https://api.open-meteo.com/v1/elevation?latitude=${pts.map(p=>p.lat.toFixed(5)).join(',')}&longitude=${pts.map(p=>p.lon.toFixed(5)).join(',')}`;
   const btn=g('btnFetch');btn.disabled=true;btn.textContent='Fetching...';g('errorBox').style.display='none';
@@ -1206,6 +1256,7 @@ function toggleTheme(){
 
 /* ── AUTO TERRAIN DEBOUNCE ── */
 let terrainTimer=null;
+function onProfDistInput(){debounceTerrain();}
 function debounceTerrain(){
   clearTimeout(terrainTimer);
   const c=parseLL();
@@ -1238,6 +1289,34 @@ function applyBand(key) {
   g('hBW').value = p.hBW;
 
   recalc();
+}
+
+/* ── SNAPSHOT ── */
+async function takeSnapshot(){
+  const btn=g('snapBtn');
+  btn.disabled=true;btn.textContent='⏳ Capturing...';
+  try{
+    const target=document.querySelector('div[style*="max-width:1520px"]');
+    const canvas=await html2canvas(target,{
+      useCORS:true,
+      allowTaint:false,
+      scale:1.5,
+      backgroundColor:getComputedStyle(document.body).backgroundColor,
+      logging:false,
+      ignoreElements:el=>el.id==='snapBtn' // hide button from snapshot
+    });
+    const ts=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    const c=parseLL();
+    const locPart=c?`_${c.lat.toFixed(4)}_${c.lon.toFixed(4)}`:'';
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download=`antenna_downtilt${locPart}_${ts}.png`;
+    a.click();
+  }catch(e){
+    alert('Snapshot failed: '+e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='📸 Snapshot';
+  }
 }
 
 /* ── VISIT COUNTER ── */
