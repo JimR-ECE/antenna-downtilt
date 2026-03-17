@@ -208,6 +208,31 @@ canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border
 </div>
 <div style="font-size:10px;color:var(--text-faint);margin-top:-8px;padding-left:2px">* terrain-adjusted (when elevation profile is loaded)</div>
 
+<!-- FSPL + TILT CHART ROW -->
+<div class="g2" style="align-items:start">
+
+  <!-- FSPL CARD -->
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <h2 style="margin:0">Free-Space Path Loss</h2>
+      <span style="font-size:10px;color:var(--text-faint)">at main lobe impact</span>
+    </div>
+    <div id="fsplTable" style="display:flex;flex-direction:column;gap:6px"></div>
+    <p style="font-size:10px;color:var(--text-faint)">FSPL = 32.45 + 20·log₁₀(f MHz) + 20·log₁₀(d km)</p>
+  </div>
+
+  <!-- TILT vs COVERAGE CHART -->
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <h2 style="margin:0">Tilt vs Coverage</h2>
+      <span style="font-size:10px;color:var(--text-faint)" id="tvcBand">main lobe distance</span>
+    </div>
+    <canvas id="tvcCanvas" height="160" style="border-radius:6px"></canvas>
+    <p style="font-size:10px;color:var(--text-faint)">Drag the tilt slider above — dot shows your current setting</p>
+  </div>
+
+</div>
+
 <!-- VIZ ROW: Beam + Map Side by Side -->
 <div id="vizRow">
 
@@ -419,6 +444,8 @@ function recalc(){
   // Canvas still uses flat-earth geometry for consistent rendering
   const flatRes=calcRFlat(hM,eff,vBW);
   drawBeam(hM,eff,vBW,flatRes,dM);
+  updateFSPL(hM,eff,vBW);
+  drawTVC(hM,vBW,eff);
   debounceDraw();
 }
 function debounceDraw(){clearTimeout(drawTimer);drawTimer=setTimeout(drawSector,450);}
@@ -935,7 +962,6 @@ function drawSector(){
     color:'#1a3a5f',weight:2,fillColor:'#dc5032',fillOpacity:0.3
   }));
 
-  // Draw footprint zone: use outerR as fallback when farEdge is infinite
   const feForDraw=isFinite(fe)&&fe>0?fe:outerR;
   if(isFinite(ne)&&feForDraw>ne&&feForDraw>0){
     addL(L.polygon(annularPoly(lat,lon,az,hBW,Math.max(ne,10),feForDraw),{
@@ -968,6 +994,132 @@ function drawSector(){
   g('smRad').textContent=fmt(outerR)+' (2× main lobe)';
   g('smNear').textContent=fmt(ne);
   g('mapFooter').textContent=`Site ${lat.toFixed(6)}, ${lon.toFixed(6)} | Azimuth ${az}° | H-BW ${hBW}° | Radius ${fmt(outerR)}`;
+}
+
+/* ── FEATURE 3: FREE-SPACE PATH LOSS ── */
+// FSPL(dB) = 32.45 + 20·log10(f_MHz) + 20·log10(d_km)
+const FSPL_BANDS=[
+  {label:'L700', freq:758,  color:'#2563eb'},
+  {label:'L2100',freq:2140, color:'#16a34a'},
+  {label:'L2600',freq:2655, color:'#dc2626'},
+];
+function fspl(fMHz,dM){
+  if(!isFinite(dM)||dM<=0)return null;
+  return 32.45+20*Math.log10(fMHz)+20*Math.log10(dM/1000);
+}
+function updateFSPL(hM,tilt,vBW){
+  const res=calcRFlat(hM,tilt,vBW);
+  const d=isFinite(res.mainLobe)&&res.mainLobe>0?res.mainLobe:null;
+  const el=g('fsplTable');
+  if(!el)return;
+  if(!d){el.innerHTML=`<div style="font-size:12px;color:var(--text-faint)">Set a valid tilt to see FSPL estimates</div>`;return;}
+  el.innerHTML=FSPL_BANDS.map(b=>{
+    const v=fspl(b.freq,d);
+    const bar=Math.min(100,Math.max(0,(v-50)/100*100));
+    return`<div style="display:flex;align-items:center;gap:10px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:${b.color};width:42px">${b.label}</span>
+      <div style="flex:1;background:var(--input-bg);border-radius:4px;height:8px;overflow:hidden;border:1px solid var(--card-border)">
+        <div style="width:${bar}%;height:100%;background:${b.color};opacity:0.7;border-radius:4px"></div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${b.color};width:58px;text-align:right">${v.toFixed(1)} dB</span>
+      <span style="font-size:10px;color:var(--text-faint);width:52px">${(b.freq/1000).toFixed(2)} GHz</span>
+    </div>`;
+  }).join('')+`<div style="font-size:10px;color:var(--text-faint);margin-top:2px">Distance: ${fmt(d)} (main lobe, flat-earth)</div>`;
+}
+
+/* ── FEATURE 4: TILT vs COVERAGE CHART ── */
+function drawTVC(hM,vBW,currentTilt){
+  const cv=g('tvcCanvas');if(!cv)return;
+  const W=cv.parentElement.clientWidth||480,H=160;
+  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+
+  const pad={l:52,r:16,t:24,b:36};
+  const pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+
+  // Background
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,cvVar('--cv-bg0'));bg.addColorStop(1,cvVar('--cv-bg1'));
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Tilt range 0.5° → 15°
+  const tMin=0.5,tMax=15,steps=100;
+  const pts=[];
+  let yMax=0;
+  for(let i=0;i<=steps;i++){
+    const t=tMin+(tMax-tMin)*i/steps;
+    const d=t>0?hM/Math.tan(t*D2R):null;
+    if(d&&isFinite(d)&&d>0&&d<500000){pts.push({t,d});if(d>yMax)yMax=d;}
+  }
+  if(!pts.length)return;
+  yMax=yMax*1.1;
+
+  const xS=t=>pad.l+(t-tMin)/(tMax-tMin)*pw;
+  const yS=d=>pad.t+ph-(d/yMax)*ph;
+
+  // Grid lines
+  ctx.strokeStyle=cvVar('--cv-grid');ctx.lineWidth=0.5;ctx.setLineDash([2,3]);
+  [3,6,9,12,15].forEach(t=>{
+    const x=xS(t);
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ph);ctx.stroke();
+    ctx.fillStyle=cvVar('--cv-axis');ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(t+'°',x,pad.t+ph+13);
+  });
+  const ySteps=4;
+  for(let i=0;i<=ySteps;i++){
+    const d=yMax*i/ySteps;
+    const y=yS(d);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+    ctx.fillStyle=cvVar('--cv-axis');ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='end';
+    ctx.fillText(d>=1000?(d/1000).toFixed(1)+'k':Math.round(d)+'m',pad.l-4,y+3);
+  }
+  ctx.setLineDash([]);
+
+  // Axis labels
+  ctx.fillStyle=cvVar('--cv-axis');ctx.font='9px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.fillText('Tilt (°)',pad.l+pw/2,H-4);
+  ctx.save();ctx.translate(11,pad.t+ph/2);ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center';ctx.fillText('Main lobe (m)',0,0);ctx.restore();
+
+  // Curve fill
+  ctx.save();
+  ctx.beginPath();ctx.rect(pad.l,pad.t,pw,ph);ctx.clip();
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ph);
+  grad.addColorStop(0,'rgba(2,132,199,0.18)');grad.addColorStop(1,'rgba(2,132,199,0.02)');
+  ctx.beginPath();
+  ctx.moveTo(xS(pts[0].t),pad.t+ph);
+  pts.forEach(p=>ctx.lineTo(xS(p.t),yS(p.d)));
+  ctx.lineTo(xS(pts[pts.length-1].t),pad.t+ph);
+  ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+
+  // Curve line
+  ctx.beginPath();ctx.strokeStyle=cvVar('--cv-tilt-label');ctx.lineWidth=2;ctx.setLineDash([]);
+  pts.forEach((p,i)=>i===0?ctx.moveTo(xS(p.t),yS(p.d)):ctx.lineTo(xS(p.t),yS(p.d)));
+  ctx.stroke();
+
+  // Current tilt dot
+  if(currentTilt>=tMin&&currentTilt<=tMax){
+    const curD=hM/Math.tan(currentTilt*D2R);
+    if(isFinite(curD)&&curD>0&&curD<500000){
+      const cx=xS(currentTilt),cy=yS(curD);
+      ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);
+      ctx.fillStyle='#f59e0b';ctx.fill();
+      ctx.strokeStyle=cvVar('--cv-dot-stroke');ctx.lineWidth=1.5;ctx.stroke();
+      // label
+      const lbl=curD>=1000?(curD/1000).toFixed(2)+' km':Math.round(curD)+' m';
+      ctx.font='bold 9px JetBrains Mono,monospace';ctx.textAlign='center';
+      ctx.fillStyle='#f59e0b';
+      ctx.fillText(lbl,cx,cy-10);
+    }
+  }
+  ctx.restore();
+
+  // Title
+  ctx.font='bold 9px JetBrains Mono,monospace';ctx.textAlign='left';
+  ctx.fillStyle=cvVar('--cv-axis');
+  ctx.fillText(`H=${hM.toFixed(0)}m · VBW=${vBW.toFixed(1)}°`,pad.l,pad.t-8);
 }
 
 /* ── KMZ EXPORT ── */
