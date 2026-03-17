@@ -2,7 +2,7 @@
 
 A browser-based RF planning tool for computing antenna downtilt, beam profiles, terrain clearance, and sector coverage — no installation required.
 
-**Live Tool:** [JimR-ECE.github.com/antenna-downtilt](https://github.com/JimR-ECE/antenna-downtilt/)  
+**Live Tool:** [JimR-ECE.github.io/antenna-downtilt](https://github.io/JimR-ECE/antenna-downtilt/)  
 **Author:** Reianjim Ramos · reianjimr@gmail.com
 
 ---
