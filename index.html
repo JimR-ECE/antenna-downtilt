@@ -206,6 +206,7 @@ canvas{width:100%!important;border-radius:8px;background:var(--canvas-bg);border
   <div class="stat" style="border-top:2px solid #0284c7"><div class="sl">Effective tilt</div><div class="sv2" id="statEff" style="color:#0284c7">—</div><div class="ss">Elec + Mech</div></div>
   <div class="stat" id="statRange" style="border-top:2px solid #16a34a"><div class="sl">Distance check</div><div class="sv2" id="statRangeVal" style="color:#16a34a">—</div><div class="ss" id="statRangeSub"></div></div>
 </div>
+<div style="font-size:10px;color:var(--text-faint);margin-top:-8px;padding-left:2px">* terrain-adjusted (when elevation profile is loaded)</div>
 
 <!-- VIZ ROW: Beam + Map Side by Side -->
 <div id="vizRow">
@@ -345,13 +346,54 @@ function getEff(){
 }
 
 /* ── CALCULATIONS ── */
-function calcR(hM,tilt,vBW){
+// Flat-earth formula (used as fallback and for beam canvas geometry)
+function calcRFlat(hM,tilt,vBW){
   const dt=tilt*D2R,up=(tilt-vBW/2)*D2R,lo=(tilt+vBW/2)*D2R;
   const ml=dt>0?hM/Math.tan(dt):Infinity;
   const fe=up>0?hM/Math.tan(up):Infinity;
   const ne=lo>0?hM/Math.tan(lo):0;
-  return{mainLobe:ml,farEdge:fe,nearEdge:ne,footprint:fe-ne};
+  return{mainLobe:ml,farEdge:fe,nearEdge:ne,footprint:fe-ne,terrainAdjusted:false};
 }
+
+// Terrain-interpolated elevation at distance d along the profile
+function terrainElevAt(d){
+  if(!terrain||terrain.length<2)return siteElev;
+  if(d<=0)return terrain[0].elev;
+  for(let i=1;i<terrain.length;i++){
+    if(d<=terrain[i].dist){
+      const t=(d-terrain[i-1].dist)/(terrain[i].dist-terrain[i-1].dist);
+      return terrain[i-1].elev+t*(terrain[i].elev-terrain[i-1].elev);
+    }
+  }
+  return terrain[terrain.length-1].elev;
+}
+
+// Trace a single ray angle against terrain, return ground-hit distance
+function rayHitDist(antElev,tiltDeg,maxDist){
+  if(tiltDeg<=0)return Infinity; // above horizon — never hits
+  const step=maxDist/400;
+  for(let d=step;d<=maxDist;d+=step){
+    const beamH=antElev-Math.tan(tiltDeg*D2R)*d;
+    const groundH=terrainElevAt(d);
+    if(beamH<=groundH)return d;
+  }
+  return Infinity;
+}
+
+// Main calculation — terrain-adjusted when terrain is loaded
+function calcR(hM,tilt,vBW){
+  if(!terrain||terrain.length<2)return calcRFlat(hM,tilt,vBW);
+
+  const antElev=siteElev+hM;
+  const maxDist=terrain[terrain.length-1].dist;
+
+  const ml=rayHitDist(antElev,tilt,maxDist);
+  const fe=rayHitDist(antElev,tilt-vBW/2,maxDist); // upper lobe edge
+  const ne=rayHitDist(antElev,tilt+vBW/2,maxDist); // lower lobe edge
+  const fp=isFinite(fe)&&isFinite(ne)?fe-ne:Infinity;
+  return{mainLobe:ml,farEdge:fe,nearEdge:ne,footprint:fp,terrainAdjusted:true};
+}
+
 function recalc(){
   g('vBWout').textContent=parseFloat(g('vBW').value).toFixed(1)+'°';
   g('hBWout').textContent=parseInt(g('hBW').value)+'°';
@@ -364,16 +406,19 @@ function recalc(){
   const ra=Math.atan(hM/crM)/D2R;
   g('recTilt').textContent=ra.toFixed(1)+'°';
   g('rec3dB').textContent=(ra+vBW/2).toFixed(1)+'°';
-  g('statMain').textContent=fmt(res.mainLobe);
-  g('statFoot').textContent=fmt(res.footprint);
+  const adjLabel=res.terrainAdjusted?' *':'';
+  g('statMain').textContent=fmt(res.mainLobe)+adjLabel;
+  g('statFoot').textContent=fmt(res.footprint)+adjLabel;
   g('statEdges').textContent='Near: '+fmt(res.nearEdge)+' → Far: '+fmt(res.farEdge);
   g('statEff').textContent=eff.toFixed(1)+'° ('+mech.toFixed(1)+'+'+elec.toFixed(1)+')';
-  const inR=dM>=res.nearEdge&&dM<=res.farEdge;
+  const inR=dM>=res.nearEdge&&(isFinite(res.farEdge)?dM<=res.farEdge:true);
   g('statRange').style.borderTopColor=inR?'#16a34a':'#ef4444';
   g('statRangeVal').style.color=inR?'#16a34a':'#ef4444';
   g('statRangeVal').textContent=inR?'IN RANGE':'OUT OF RANGE';
-  g('statRangeSub').textContent='Dist: '+fmt(dM);
-  drawBeam(hM,eff,vBW,res,dM);
+  g('statRangeSub').textContent='Dist: '+fmt(dM)+(res.terrainAdjusted?' · terrain-adj':'');
+  // Canvas still uses flat-earth geometry for consistent rendering
+  const flatRes=calcRFlat(hM,eff,vBW);
+  drawBeam(hM,eff,vBW,flatRes,dM);
   debounceDraw();
 }
 function debounceDraw(){clearTimeout(drawTimer);drawTimer=setTimeout(drawSector,450);}
