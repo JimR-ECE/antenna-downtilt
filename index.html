@@ -522,8 +522,9 @@ function drawBeam(hM,tilt,vBW,res,dM){
   if(ht){
     const vis=terrain.filter(p=>p.dist<=mxD);
     const elevs=vis.map(p=>p.elev);
-    yMn=Math.min(...elevs)-30;
-    yMx=antElev+70;
+    const beamTop=ht?Math.max(antElev,Math.max(...[tilt-vBW/2].map(a=>a<=0?antElev:antElev))):antElev;
+    yMn=Math.min(...elevs)-8;
+    yMx=beamTop+20;
   }else{
     yMn=-5;yMx=hM*1.65+20;
   }
